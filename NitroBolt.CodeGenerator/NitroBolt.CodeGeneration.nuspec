@@ -1,0 +1,13 @@
+﻿<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>NitroBolt.CodeGeneration</id>
+    <version>1.0.0</version>
+    <title>NitroBolt.CodeGeneration</title>
+    <authors>Serj-Tm</authors>
+    <owners>Serj-Tm</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>NitroBolt.CodeGeneration - Immutable class generation (methods: With, By)</description>
+    <copyright>Copyright ©  2013</copyright>
+  </metadata>
+</package>
