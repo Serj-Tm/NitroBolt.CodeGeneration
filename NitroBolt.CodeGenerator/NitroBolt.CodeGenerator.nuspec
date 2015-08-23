@@ -9,5 +9,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>NitroBolt.CodeGeneration - Immutable class generation (methods: With, By)</description>
     <copyright>Copyright ©  2013</copyright>
+    <projectUrl>https://github.com/Serj-Tm/NitroBolt.CodeGeneration</projectUrl>
+    <tags>C# Immutable Roslyn CodeGeneration</tags>
   </metadata>
 </package>
