@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NitroBolt.CodeGeneration", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NitroBolt.CodeGenerator", "NitroBolt.CodeGenerator\NitroBolt.CodeGenerator.csproj", "{5705D7B4-4D28-4F77-B02C-A67E583C7E5B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NitroBolt.CodeGeneration.TestMonitor", "NitroBolt.CodeGeneration.TestMonitor\NitroBolt.CodeGeneration.TestMonitor.csproj", "{2D79D60F-498D-4901-AEC3-9055166DF109}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{5705D7B4-4D28-4F77-B02C-A67E583C7E5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5705D7B4-4D28-4F77-B02C-A67E583C7E5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5705D7B4-4D28-4F77-B02C-A67E583C7E5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D79D60F-498D-4901-AEC3-9055166DF109}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D79D60F-498D-4901-AEC3-9055166DF109}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D79D60F-498D-4901-AEC3-9055166DF109}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D79D60F-498D-4901-AEC3-9055166DF109}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

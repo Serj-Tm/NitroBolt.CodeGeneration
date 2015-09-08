@@ -58,8 +58,8 @@
       <HintPath>..\packages\Microsoft.CodeAnalysis.Workspaces.Common.1.0.0\lib\net45\Microsoft.CodeAnalysis.Workspaces.Desktop.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="NitroBolt.Functional, Version=1.0.11.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\NitroBolt.Functional.1.0.11\lib\net45\NitroBolt.Functional.dll</HintPath>
+    <Reference Include="NitroBolt.Functional, Version=1.0.17.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NitroBolt.Functional.1.0.17\lib\net45\NitroBolt.Functional.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="NitroBolt.Immutable, Version=1.0.13.0, Culture=neutral, processorArchitecture=MSIL">
@@ -105,14 +105,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CodeChangeMonitor.cs" />
-    <Compile Include="Examples\Main.cs" />
-    <Compile Include="Examples\Main.g.cs" />
     <Compile Include="ImmutableGenerator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.1.0.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
