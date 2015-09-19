@@ -17,10 +17,17 @@ namespace NitroBolt.CodeGeneration
             {
                 for (;;)
                 {
-                    string path;
-                    if (queue.TryTake(out path, TimeSpan.FromSeconds(100)))
+                    try
                     {
-                        CodeProcess(path, ImmutableGenerator.Generate);
+                        string path;
+                        if (queue.TryTake(out path, TimeSpan.FromSeconds(100)))
+                        {
+                            CodeProcess(path, ImmutableGenerator.Generate);
+                        }
+                    }
+                    catch (Exception exc)
+                    {
+                        Console.Error.WriteLine(exc);
                     }
                 }
             }
