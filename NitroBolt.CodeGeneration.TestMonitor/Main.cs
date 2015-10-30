@@ -28,12 +28,16 @@ namespace NitroBolt.CodeGeneration
 
             state = Execute(jsons, state);
 
+            var result = ImmutableGenerator.Generate(System.IO.File.ReadAllText(context.HttpContext.Server.MapPath("~/Examples/Main.cs")));
+            var originalResult = System.IO.File.ReadAllText(context.HttpContext.Server.MapPath("~/Examples/Main.g.cs"));
+
             var page = h.Html(
               h.Head
               (
               ),
               h.Body
               (
+                  result == originalResult,
                   h.Div(DateTime.UtcNow)
               )
             );

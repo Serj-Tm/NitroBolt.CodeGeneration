@@ -12,495 +12,500 @@ using NitroBolt.Functional;
 
 namespace NitroBolt.CodeGeneration
 {
-  public class ImmutableGenerator
-  {
-    //http://roslynquoter.azurewebsites.net/
-
-    public static string Generate(string code)
+    public class ImmutableGenerator
     {
-      try
-      {
-        var tree = CSharpSyntaxTree.ParseText(code);
+        //http://roslynquoter.azurewebsites.net/
 
-        var compilation = CSharpCompilation.Create("data")
-          .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
-          .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
-          .AddReferences(MetadataReference.CreateFromFile(typeof(System.Collections.Immutable.ImmutableArray).Assembly.Location))
-          .AddSyntaxTrees(tree);
-
-        var model = compilation.GetSemanticModel(tree);
-
-
-        var @namespace = tree.GetCompilationUnitRoot().Members.OfType<NamespaceDeclarationSyntax>().FirstOrDefault();
-
-
-
-
-        var r = s.CompilationUnit()
-          .AddUsings
-          (
-            new[] { "System" },
-            new[] { "System", "Linq" },
-            new[] { "System", "Collections", "Generic" },
-            new[] { "System", "Collections", "Immutable" },
-            new[] { "NitroBolt", "Functional" },
-            new[] { "NitroBolt", "Immutable" }
-          );
-
-        var isAdded = false;
-
-        if (@namespace != null)
+        public static string Generate(string code)
         {
-          var resultNamespace = s.NamespaceDeclaration(@namespace.Name);
-          foreach (var @class in @namespace.Members.OfType<ClassDeclarationSyntax>())
-          {
+            try
+            {
+                var tree = CSharpSyntaxTree.ParseText(code);
+
+                var compilation = CSharpCompilation.Create("data")
+                  .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+                  .AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+                  .AddReferences(MetadataReference.CreateFromFile(typeof(System.Collections.Immutable.ImmutableArray).Assembly.Location))
+                  .AddSyntaxTrees(tree);
+
+                var model = compilation.GetSemanticModel(tree);
+
+
+                var @namespace = tree.GetCompilationUnitRoot().Members.OfType<NamespaceDeclarationSyntax>().FirstOrDefault();
+
+
+
+
+                var r = s.CompilationUnit()
+                  .AddUsings
+                  (
+                    new[] { "System" },
+                    new[] { "System", "Linq" },
+                    new[] { "System", "Collections", "Generic" },
+                    new[] { "System", "Collections", "Immutable" },
+                    new[] { "NitroBolt", "Functional" },
+                    new[] { "NitroBolt", "Immutable" }
+                  );
+
+                var isAdded = false;
+
+                if (@namespace != null)
+                {
+                    var resultNamespace = s.NamespaceDeclaration(@namespace.Name);
+                    foreach (var @class in @namespace.Members.OfType<ClassDeclarationSyntax>())
+                    {
+
+                        var members = GetMembersForGeneration(@class, model);
+
+                        if (!members.OrEmpty().Any())
+                            continue;
+
+                        resultNamespace = resultNamespace
+                          .AddMembers(GenerateConstructorAndWithMethod(@class.Identifier.ValueText, members));
+
+                        var byHelper = GenerateByMethod(@class.Identifier.ValueText, members);
+                        if (byHelper != null)
+                            resultNamespace = resultNamespace.AddMembers(byHelper);
+
+                        isAdded = true;
+                    }
+                    r = r.AddMembers(resultNamespace);
+                }
+                if (!isAdded)
+                    return null;
+                return r.NormalizeWhitespace().ToString();
+            }
+            catch (Exception exc)
+            {
+                Console.WriteLine(exc);
+                return null;
+            }
+        }
+
+        public static Member[] GetMembersForGeneration(ClassDeclarationSyntax @class, SemanticModel model)
+        {
             if (@class.Modifiers.Any(modifier => modifier.Kind() == SyntaxKind.StaticKeyword) || @class.Modifiers.All(modifier => modifier.Kind() != SyntaxKind.PartialKeyword))
-              continue;
+                return null;
 
             if (MetaLiteral(@class.AttributeLists) == "skip")
-              continue;
+                return null;
 
-
-            var members = @class.Members
+            return @class.Members
               .Select(member => ToMember(member, model)).Where(member => member != null).ToArray();
-
-            if (!members.Any())
-              continue;
-
-            resultNamespace = resultNamespace
-              .AddMembers(GenerateConstructorAndWithMethod(@class.Identifier.ValueText, members));
-
-            var byHelper = GenerateByMethod(@class.Identifier.ValueText, members);
-            if (byHelper != null)
-              resultNamespace = resultNamespace.AddMembers(byHelper);
-
-            isAdded = true;
-          }
-          r = r.AddMembers(resultNamespace);
         }
-        if (!isAdded)
-          return null;
-        return r.NormalizeWhitespace().ToString();
-      }
-      catch (Exception exc)
-      {
-        Console.WriteLine(exc);
-        return null;
-      }
-    }
 
-    private static ClassDeclarationSyntax GenerateConstructorAndWithMethod(string name, Member[] members)
-    {
-      var resultClass = s.ClassDeclaration(name)
-           .AddModifiers(s.Token(SyntaxKind.PartialKeyword));
+        private static ClassDeclarationSyntax GenerateConstructorAndWithMethod(string name, Member[] members)
+        {
+            var resultClass = s.ClassDeclaration(name)
+                 .AddModifiers(s.Token(SyntaxKind.PartialKeyword));
 
-      var parameters = members.Where(member => member.IsParameter).ToArray();
+            var parameters = members.Where(member => member.IsParameter).ToArray();
 
-      var lastParameterI = parameters.Select((member, i) => (member.ParameterTypeKind == ValueKind.Value || member.ParameterTypeKind == ValueKind.NotNullable) ? (i + 1) : (int?)null).Max() ?? 0;
+            var lastParameterI = parameters.Select((member, i) => (member.ParameterTypeKind == ValueKind.Value || member.ParameterTypeKind == ValueKind.NotNullable) ? (i + 1) : (int?)null).Max() ?? 0;
 
-      var constructor = s.ConstructorDeclaration(name)
-        .AddModifiers(s.Token(SyntaxKind.PublicKeyword))
-        .AddParameterListParameters
-        (
-          parameters.Select((member, i) =>
-            s.Parameter(member.ParameterIdentifier)
-             .WithType(member.ParameterType)
-             .WithDefault(member.ParameterTypeKind != ValueKind.Value && i >= lastParameterI ? s.EqualsValueClause(s.LiteralExpression(SyntaxKind.NullLiteralExpression)) : null)
-          )
-          .ToArray()
-        )
-        .WithBody(s.Block(members
-            .Select(member => s.ExpressionStatement(s.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, s.IdentifierName(member.Identifier),
-              !member.IsParameter
-              ? member.Initializer
-              : (member.InitializerF
-                 ?? (member.Initializer != null ? new Func<ExpressionSyntax, ExpressionSyntax>(p => s.BinaryExpression(SyntaxKind.CoalesceExpression, p, member.Initializer)) : null)
-                 ?? (p => p)
-                )
-                  (s.IdentifierName(member.ParameterIdentifier))
-
-            )))
-        ));
-
-      var with = s.MethodDeclaration(s.IdentifierName(name), "With")
-        .AddModifiers(s.Token(SyntaxKind.PublicKeyword))
-        .AddParameterListParameters
-        (
-          members.Select(member =>
-            s.Parameter(member.ParameterIdentifier)
-             .WithType(member.OptionType)
-             .WithDefault(s.EqualsValueClause(s.LiteralExpression(SyntaxKind.NullLiteralExpression)))
-          )
-          .ToArray()
-        )
-        .WithBody(s.Block(
-          s.ReturnStatement(s.ObjectCreationExpression(s.IdentifierName(name))
-            .AddArgumentListArguments
-            (
-              members
-                .Where(member => member.IsOption)
-                .Select(member => s.Argument(
-                   member.OptionValueKind == ValueKind.Option
-                   ? s.InvocationExpression(s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, s.IdentifierName(member.ParameterIdentifier), s.IdentifierName("Else")))
-                      .AddArgumentListArguments(s.Argument(s.IdentifierName(member.Identifier)))
-                   : (ExpressionSyntax)s.BinaryExpression(SyntaxKind.CoalesceExpression, s.IdentifierName(member.ParameterIdentifier), s.IdentifierName(member.Identifier))
-                ))
-                .ToArray()
-            )
-          )
-        ));
-
-      return resultClass.AddMembers(constructor, with);
-    }
-
-    //static T ByMethod_Pattern<T, TValue>(this IEnumerable<T> items, Func<T, TValue> f, Option<TValue> v = null)
-    //  where T : class
-    //  where TValue : class
-    //{
-    //  if (v != null)
-    //    return items.FirstOrDefault(item => f(item) == v.Value);
-
-    //  return null;
-    //}
-
-    //static dynamic QQ(params dynamic[] args) { return null; }
-
-    private static ClassDeclarationSyntax GenerateByMethod(string name, Member[] members)
-    {
-      var resultClass = s.ClassDeclaration(name + "Helper")
-           .AddModifiers(s.Token(SyntaxKind.PublicKeyword), s.Token(SyntaxKind.StaticKeyword), s.Token(SyntaxKind.PartialKeyword));
-
-      var _members = members.Where(member => !IsCollection(member.Type)).ToArray();
-      if (!_members.Any())
-        return null;
-
-      var by = s.MethodDeclaration(s.IdentifierName(name), "By")
-        .AddParameterListParameters(s.Parameter(s.Identifier("items"))
-          .WithType(s.GenericName("IEnumerable").AddTypeArgumentListArguments(s.IdentifierName(name)))
-          .AddModifiers(s.Token(SyntaxKind.ThisKeyword))
-        )
-        .AddParameterListParameters
-        (
-          _members.Select(member =>
-            s.Parameter(member.ParameterIdentifier)
-             .WithType(member.OptionType)
-             .WithDefault(s.EqualsValueClause(s.LiteralExpression(SyntaxKind.NullLiteralExpression)))
-          )
-          .ToArray()
-        )
-        .AddModifiers(s.Token(SyntaxKind.PublicKeyword), s.Token(SyntaxKind.StaticKeyword))
-        .WithBody(s.Block(
-            _members.Select(member =>
-              s.IfStatement
+            var constructor = s.ConstructorDeclaration(name)
+              .AddModifiers(s.Token(SyntaxKind.PublicKeyword))
+              .AddParameterListParameters
               (
-                s.BinaryExpression(SyntaxKind.NotEqualsExpression, s.IdentifierName(member.ParameterIdentifier), s.LiteralExpression(SyntaxKind.NullLiteralExpression)),
-                s.ReturnStatement
-                (
-                   s.InvocationExpression(s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, s.IdentifierName("items"), s.IdentifierName("FirstOrDefault")))
-                   .AddArgumentListArguments
-                   (
-                     s.Argument
-                     (
-                       s.SimpleLambdaExpression
-                       (
-                         s.Parameter(s.Identifier("_item")), 
-                         s.BinaryExpression
-                         (
-                           SyntaxKind.EqualsExpression, 
-                           s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, s.IdentifierName("_item"), s.IdentifierName(member.Identifier)),
-                           s.IdentifierName(member.ParameterIdentifier)
-                            .Wrap(_ => member.OptionValueKind == ValueKind.Option ? s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, _, s.IdentifierName("Value")) : (ExpressionSyntax)_)
-                         )
-                       )
-                     )
-                   )
+                parameters.Select((member, i) =>
+                  s.Parameter(member.ParameterIdentifier)
+                   .WithType(member.ParameterType)
+                   .WithDefault(member.ParameterTypeKind != ValueKind.Value && i >= lastParameterI ? s.EqualsValueClause(s.LiteralExpression(SyntaxKind.NullLiteralExpression)) : null)
                 )
+                .ToArray()
               )
-            )
-            
-          ).AddStatements(s.ReturnStatement(s.LiteralExpression(SyntaxKind.NullLiteralExpression)))
-        );
+              .WithBody(s.Block(members
+                  .Select(member => s.ExpressionStatement(s.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, s.IdentifierName(member.Identifier),
+                    !member.IsParameter
+                    ? member.Initializer
+                    : (member.InitializerF
+                       ?? (member.Initializer != null ? new Func<ExpressionSyntax, ExpressionSyntax>(p => s.BinaryExpression(SyntaxKind.CoalesceExpression, p, member.Initializer)) : null)
+                       ?? (p => p)
+                      )
+                        (s.IdentifierName(member.ParameterIdentifier))
 
-      resultClass = resultClass.AddMembers(by);
+                  )))
+              ));
 
-      return resultClass;
-    }
+            var with = s.MethodDeclaration(s.IdentifierName(name), "With")
+              .AddModifiers(s.Token(SyntaxKind.PublicKeyword))
+              .AddParameterListParameters
+              (
+                members.Select(member =>
+                  s.Parameter(member.ParameterIdentifier)
+                   .WithType(member.OptionType)
+                   .WithDefault(s.EqualsValueClause(s.LiteralExpression(SyntaxKind.NullLiteralExpression)))
+                )
+                .ToArray()
+              )
+              .WithBody(s.Block(
+                s.ReturnStatement(s.ObjectCreationExpression(s.IdentifierName(name))
+                  .AddArgumentListArguments
+                  (
+                    members
+                      .Where(member => member.IsOption)
+                      .Select(member => s.Argument(
+                         member.OptionValueKind == ValueKind.Option
+                         ? s.InvocationExpression(s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, s.IdentifierName(member.ParameterIdentifier), s.IdentifierName("Else")))
+                            .AddArgumentListArguments(s.Argument(s.IdentifierName(member.Identifier)))
+                         : (ExpressionSyntax)s.BinaryExpression(SyntaxKind.CoalesceExpression, s.IdentifierName(member.ParameterIdentifier), s.IdentifierName(member.Identifier))
+                      ))
+                      .ToArray()
+                  )
+                )
+              ));
 
+            return resultClass.AddMembers(constructor, with);
+        }
 
-    static TypeSyntax ArrayElementType(TypeSyntax type)
-    {
-      if (type is ArrayTypeSyntax)
-        return ((ArrayTypeSyntax)type).ElementType;
-      return null;
-    }
-    static bool IsCollection(TypeSyntax type)
-    {
-      if (type is ArrayTypeSyntax)
-        return true;
-      if (type is GenericNameSyntax)
-      {
-        var generic = (GenericNameSyntax)type;
-        if (generic.Identifier.Text == "ImmutableArray")
-          return true;
-      }
-      return false;
-    }
-    static bool IsNullableType(TypeSyntax type, ITypeSymbol typeSymbol)
-    {
-      if (type is NullableTypeSyntax)
-        return true;
-      if (type is ArrayTypeSyntax)
-        return true;
+        //static T ByMethod_Pattern<T, TValue>(this IEnumerable<T> items, Func<T, TValue> f, Option<TValue> v = null)
+        //  where T : class
+        //  where TValue : class
+        //{
+        //  if (v != null)
+        //    return items.FirstOrDefault(item => f(item) == v.Value);
 
-      for (; typeSymbol != null; )
-      {
-        switch (typeSymbol.Name)
+        //  return null;
+        //}
+
+        //static dynamic QQ(params dynamic[] args) { return null; }
+
+        private static ClassDeclarationSyntax GenerateByMethod(string name, Member[] members)
         {
-          case "ValueType":
-            {
-              var ns = typeSymbol.ContainingNamespace;
-              if (ns != null && ns.Name == "System")
-                return false;
-              break;
-            }
-          case "Object":
-            {
-              var ns = typeSymbol.ContainingNamespace;
-              if (ns != null && ns.Name == "System")
+            var resultClass = s.ClassDeclaration(name + "Helper")
+                 .AddModifiers(s.Token(SyntaxKind.PublicKeyword), s.Token(SyntaxKind.StaticKeyword), s.Token(SyntaxKind.PartialKeyword));
+
+            var _members = members.Where(member => !IsCollection(member.Type)).ToArray();
+            if (!_members.Any())
+                return null;
+
+            var by = s.MethodDeclaration(s.IdentifierName(name), "By")
+              .AddParameterListParameters(s.Parameter(s.Identifier("items"))
+                .WithType(s.GenericName("IEnumerable").AddTypeArgumentListArguments(s.IdentifierName(name)))
+                .AddModifiers(s.Token(SyntaxKind.ThisKeyword))
+              )
+              .AddParameterListParameters
+              (
+                _members.Select(member =>
+                  s.Parameter(member.ParameterIdentifier)
+                   .WithType(member.OptionType)
+                   .WithDefault(s.EqualsValueClause(s.LiteralExpression(SyntaxKind.NullLiteralExpression)))
+                )
+                .ToArray()
+              )
+              .AddModifiers(s.Token(SyntaxKind.PublicKeyword), s.Token(SyntaxKind.StaticKeyword))
+              .WithBody(s.Block(
+                  _members.Select(member =>
+                    s.IfStatement
+                    (
+                      s.BinaryExpression(SyntaxKind.NotEqualsExpression, s.IdentifierName(member.ParameterIdentifier), s.LiteralExpression(SyntaxKind.NullLiteralExpression)),
+                      s.ReturnStatement
+                      (
+                         s.InvocationExpression(s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, s.IdentifierName("items"), s.IdentifierName("FirstOrDefault")))
+                         .AddArgumentListArguments
+                         (
+                           s.Argument
+                           (
+                             s.SimpleLambdaExpression
+                             (
+                               s.Parameter(s.Identifier("_item")),
+                               s.BinaryExpression
+                               (
+                                 SyntaxKind.EqualsExpression,
+                                 s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, s.IdentifierName("_item"), s.IdentifierName(member.Identifier)),
+                                 s.IdentifierName(member.ParameterIdentifier)
+                                  .Wrap(_ => member.OptionValueKind == ValueKind.Option ? s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, _, s.IdentifierName("Value")) : (ExpressionSyntax)_)
+                               )
+                             )
+                           )
+                         )
+                      )
+                    )
+                  )
+
+                ).AddStatements(s.ReturnStatement(s.LiteralExpression(SyntaxKind.NullLiteralExpression)))
+              );
+
+            resultClass = resultClass.AddMembers(by);
+
+            return resultClass;
+        }
+
+
+        static TypeSyntax ArrayElementType(TypeSyntax type)
+        {
+            if (type is ArrayTypeSyntax)
+                return ((ArrayTypeSyntax)type).ElementType;
+            return null;
+        }
+        static bool IsCollection(TypeSyntax type)
+        {
+            if (type is ArrayTypeSyntax)
                 return true;
-              break;
+            if (type is GenericNameSyntax)
+            {
+                var generic = (GenericNameSyntax)type;
+                if (generic.Identifier.Text == "ImmutableArray")
+                    return true;
+            }
+            return false;
+        }
+        static bool IsNullableType(TypeSyntax type, ITypeSymbol typeSymbol)
+        {
+            if (type is NullableTypeSyntax)
+                return true;
+            if (type is ArrayTypeSyntax)
+                return true;
+
+            for (; typeSymbol != null;)
+            {
+                switch (typeSymbol.Name)
+                {
+                    case "ValueType":
+                        {
+                            var ns = typeSymbol.ContainingNamespace;
+                            if (ns != null && ns.Name == "System")
+                                return false;
+                            break;
+                        }
+                    case "Object":
+                        {
+                            var ns = typeSymbol.ContainingNamespace;
+                            if (ns != null && ns.Name == "System")
+                                return true;
+                            break;
+                        }
+                }
+                typeSymbol = typeSymbol.BaseType;
+            }
+
+            return true;
+        }
+
+
+        static string MetaLiteral(SyntaxList<AttributeListSyntax> attributes)
+        {
+            return attributes.SelectMany(attrs => attrs.Attributes)
+              .Where(atr => atr.Name.As<SimpleNameSyntax>()?.Identifier.ValueText == "Meta")
+              .Select(meta => meta.ArgumentList.Arguments.FirstOrDefault().Expression)
+              .OfType<LiteralExpressionSyntax>()
+              .Select(_literal => _literal.Token.ValueText)
+              .FirstOrDefault();
+        }
+
+        static Member ToMember(MemberDeclarationSyntax member, SemanticModel model)
+        {
+            if (member is FieldDeclarationSyntax)
+            {
+                var field = (FieldDeclarationSyntax)member;
+                if (field.Modifiers.Any(modifier => modifier.Kind() == SyntaxKind.StaticKeyword))
+                    return null;
+                if (!field.Modifiers.Any(modifier => modifier.Kind() == SyntaxKind.ReadOnlyKeyword))
+                    return null;
+
+                var variable = field.Declaration.Variables.First();
+
+                return ToMember(variable.Identifier, field.Declaration.Type,
+                  model.GetTypeInfo(field.Declaration.Type).Type,
+                  MetaLiteral(field.AttributeLists),
+                  variable.Initializer != null ? variable.Initializer.Value : null
+                );
+            }
+            else if (member is PropertyDeclarationSyntax)
+            {
+                var property = (PropertyDeclarationSyntax)member;
+
+                if (property.Modifiers.Any(modifier => modifier.Kind() == SyntaxKind.StaticKeyword))
+                    return null;
+
+                if (property.AccessorList?.Accessors.Any(accessor => accessor.Kind() == SyntaxKind.SetAccessorDeclaration) ?? false)
+                    return ToMember(property.Identifier, property.Type, model.GetTypeInfo(property.Type).Type, MetaLiteral(property.AttributeLists));
+                else
+                    return null;
+            }
+            return null;
+        }
+        public static string ToUpper(string text)
+        {
+            if (text == null)
+                return null;
+            return text.Substring(0, 1).ToUpper() + text.Substring(1);
+        }
+        public static string ToLower(string text)
+        {
+            if (text == null)
+                return null;
+            return text.Substring(0, 1).ToLower() + text.Substring(1);
+        }
+        public static string EncodeKeywordIdentifier(string name)
+        {
+            switch (name)
+            {
+                case "class":
+                case "default":
+                    return "@" + name;
+                default:
+                    return name;
             }
         }
-        typeSymbol = typeSymbol.BaseType;
-      }
-
-      return true;
-    }
-
-
-    static string MetaLiteral(SyntaxList<AttributeListSyntax> attributes)
-    {
-      return attributes.SelectMany(attrs => attrs.Attributes)
-        .Where(atr => atr.Name.As<SimpleNameSyntax>()?.Identifier.ValueText == "Meta")
-        .Select(meta => meta.ArgumentList.Arguments.FirstOrDefault().Expression)
-        .OfType<LiteralExpressionSyntax>()
-        .Select(_literal => _literal.Token.ValueText)
-        .FirstOrDefault();
-    }
-
-    static Member ToMember(MemberDeclarationSyntax member, SemanticModel model)
-    {
-      if (member is FieldDeclarationSyntax)
-      {
-        var field = (FieldDeclarationSyntax)member;
-        if (field.Modifiers.Any(modifier => modifier.Kind() == SyntaxKind.StaticKeyword))
-          return null;
-        if (!field.Modifiers.Any(modifier => modifier.Kind() == SyntaxKind.ReadOnlyKeyword))
-          return null;
-
-        var variable = field.Declaration.Variables.First();
-
-        return ToMember(variable.Identifier, field.Declaration.Type, 
-          model.GetTypeInfo(field.Declaration.Type).Type, 
-          MetaLiteral(field.AttributeLists),
-          variable.Initializer != null ? variable.Initializer.Value : null
-        );
-      }
-      else if (member is PropertyDeclarationSyntax)
-      {
-        var property = (PropertyDeclarationSyntax)member;
-
-        if (property.Modifiers.Any(modifier => modifier.Kind() == SyntaxKind.StaticKeyword))
-          return null;
-
-        if (property.AccessorList?.Accessors.Any(accessor => accessor.Kind() == SyntaxKind.SetAccessorDeclaration) ?? false)
-          return ToMember(property.Identifier, property.Type, model.GetTypeInfo(property.Type).Type, MetaLiteral(property.AttributeLists));
-        else
-          return null;
-      }
-      return null;
-    }
-    public static string ToUpper(string text)
-    {
-      if (text == null)
-        return null;
-      return text.Substring(0, 1).ToUpper() + text.Substring(1);
-    }
-    public static string ToLower(string text)
-    {
-      if (text == null)
-        return null;
-      return text.Substring(0, 1).ToLower() + text.Substring(1);
-    }
-    public static string EncodeKeywordIdentifier(string name)
-    {
-      switch (name)
-      {
-        case "class":
-        case "default":
-          return "@" + name;
-        default:
-          return name;
-      }
-    }
-    static Member ToMember(SyntaxToken identifier, TypeSyntax type, ITypeSymbol typeSymbol, string literal, ExpressionSyntax initializer = null)
-    {
-      var elementType = ArrayElementType(type);
-      var isCollection = IsCollection(type);
-
-      var typeKind = IsNullableType(type, typeSymbol) ? ValueKind.NotNullable : ValueKind.Value;
-      if (typeKind == ValueKind.NotNullable)
-      {
-        if (literal == "null")
-            typeKind = ValueKind.Nullable;
-      }
-      var isCache = false;
-      if (initializer != null)
-      {
-        var invoke = initializer as InvocationExpressionSyntax;
-        if (invoke != null)
+        static Member ToMember(SyntaxToken identifier, TypeSyntax type, ITypeSymbol typeSymbol, string literal, ExpressionSyntax initializer = null)
         {
-          var invokeIdentifier = invoke.Expression as IdentifierNameSyntax;
+            var elementType = ArrayElementType(type);
+            var isCollection = IsCollection(type);
 
-          var argument = invoke.ArgumentList.Arguments.FirstOrDefault()?.Expression as SimpleLambdaExpressionSyntax;
-          if (argument != null && invokeIdentifier != null && (invokeIdentifier.Identifier.ValueText == "Cache" || invokeIdentifier.Identifier.ValueText == "Default"))
-          {
-            initializer = new IdentifierReplacer(argument.Parameter.Identifier.ValueText).Visit(argument.Body) as ExpressionSyntax;
-            isCache = invokeIdentifier.Identifier.ValueText == "Cache";
-          }
+            var typeKind = IsNullableType(type, typeSymbol) ? ValueKind.NotNullable : ValueKind.Value;
+            if (typeKind == ValueKind.NotNullable)
+            {
+                if (literal == "null")
+                    typeKind = ValueKind.Nullable;
+            }
+            var isCache = false;
+            if (initializer != null)
+            {
+                var invoke = initializer as InvocationExpressionSyntax;
+                if (invoke != null)
+                {
+                    var invokeIdentifier = invoke.Expression as IdentifierNameSyntax;
+
+                    var argument = invoke.ArgumentList.Arguments.FirstOrDefault()?.Expression as SimpleLambdaExpressionSyntax;
+                    if (argument != null && invokeIdentifier != null && (invokeIdentifier.Identifier.ValueText == "Cache" || invokeIdentifier.Identifier.ValueText == "Default"))
+                    {
+                        initializer = new IdentifierReplacer(argument.Parameter.Identifier.ValueText).Visit(argument.Body) as ExpressionSyntax;
+                        isCache = invokeIdentifier.Identifier.ValueText == "Cache";
+                    }
+                }
+            }
+
+            initializer = initializer ??
+              (
+                elementType != null
+                ? s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, s.GenericName("Array").AddTypeArgumentListArguments(elementType), s.IdentifierName("Empty"))
+                : null
+              );
+            Func<ExpressionSyntax, ExpressionSyntax> initializerF = null;
+            if (isCollection && initializer == null)
+            {
+                initializerF = p => s.InvocationExpression(s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, p, s.IdentifierName("OrEmpty")));
+            }
+
+            var parameterType = type;
+            var parameterTypeKind = typeKind;
+            if (typeKind == ValueKind.Value && (initializer != null || initializerF != null))
+            {
+                parameterType = s.NullableType(type);
+                parameterTypeKind = ValueKind.Nullable;
+            }
+            var optionType = type;
+            var optionTypeKind = typeKind;
+            if (typeKind == ValueKind.Nullable)
+            {
+                optionType = s.GenericName("Option").AddTypeArgumentListArguments(type);
+                optionTypeKind = ValueKind.Option;
+            }
+            else if (typeKind == ValueKind.Value)
+            {
+                optionType = s.NullableType(type);
+                optionTypeKind = ValueKind.Nullable;
+            }
+
+
+            return new Member(identifier, type, typeKind, typeSymbol,
+              s.Identifier(EncodeKeywordIdentifier(ToLower(identifier.ValueText))), parameterType, parameterTypeKind, initializer, initializerF,
+              optionType, optionTypeKind,
+              isCache
+            );
         }
-      }
 
-      initializer = initializer ??
-        (
-          elementType != null
-          ? s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, s.GenericName("Array").AddTypeArgumentListArguments(elementType), s.IdentifierName("Empty"))
-          : null
-        );
-      Func<ExpressionSyntax, ExpressionSyntax> initializerF = null;
-      if (isCollection && initializer == null)
-      {
-         initializerF = p => s.InvocationExpression(s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, p, s.IdentifierName("OrEmpty")));
-      }
+        public class Member
+        {
+            public Member(SyntaxToken identifier, TypeSyntax type, ValueKind typeKind, ITypeSymbol typeSymbol,
+              SyntaxToken parameterIdentifier, TypeSyntax parameterType, ValueKind parameterTypeKind, ExpressionSyntax initializer,
+              Func<ExpressionSyntax, ExpressionSyntax> initializerF, TypeSyntax optionType, ValueKind optionValueKind, bool isCache = false)
+            {
+                this.Identifier = identifier;
+                this.Type = type;
+                this.TypeKind = typeKind;
+                this.TypeSymbol = typeSymbol;
 
-      var parameterType = type;
-      var parameterTypeKind = typeKind;
-      if (typeKind == ValueKind.Value && (initializer != null || initializerF != null))
-      {
-        parameterType = s.NullableType(type);
-        parameterTypeKind = ValueKind.Nullable;
-      }
-      var optionType = type;
-      var optionTypeKind = typeKind;
-      if (typeKind == ValueKind.Nullable)
-      {
-        optionType = s.GenericName("Option").AddTypeArgumentListArguments(type);
-        optionTypeKind = ValueKind.Option;
-      }
-      else if (typeKind == ValueKind.Value)
-      {
-        optionType = s.NullableType(type);
-        optionTypeKind = ValueKind.Nullable;
-      }
+                this.IsParameter = !isCache;
+                this.ParameterIdentifier = parameterIdentifier;
+                this.ParameterType = parameterType;
+                this.ParameterTypeKind = parameterTypeKind;
+                this.Initializer = initializer;
+                this.InitializerF = initializerF;
 
+                this.IsOption = !isCache;
+                this.OptionType = optionType;
+                this.OptionValueKind = optionValueKind;
 
-      return new Member(identifier, type, typeKind, typeSymbol,
-        s.Identifier(EncodeKeywordIdentifier(ToLower(identifier.ValueText))), parameterType, parameterTypeKind, initializer, initializerF,
-        optionType, optionTypeKind,
-        isCache
-      );
+                this.IsCache = isCache;
+            }
+            public readonly SyntaxToken Identifier;
+            public readonly TypeSyntax Type;
+            public readonly ValueKind TypeKind;
+            public readonly ITypeSymbol TypeSymbol;
+
+            public readonly bool IsParameter; //создавать ли аргумент в конструкторе
+            public readonly SyntaxToken ParameterIdentifier;
+            public readonly TypeSyntax ParameterType;
+            public readonly ValueKind ParameterTypeKind;
+            public readonly ExpressionSyntax Initializer;
+            public readonly Func<ExpressionSyntax, ExpressionSyntax> InitializerF;
+
+            public readonly bool IsOption; //создавать ли аргумент в with
+            public readonly TypeSyntax OptionType;
+            public readonly ValueKind OptionValueKind;
+
+            public readonly bool IsCache;
+        }
+        public enum ValueKind
+        {
+            Value,
+            NotNullable, //null-type, который не принимает значение null
+            Nullable,
+            Option
+        }
     }
-
-    class Member
+    class IdentifierReplacer : CSharpSyntaxRewriter
     {
-      public Member(SyntaxToken identifier, TypeSyntax type, ValueKind typeKind, ITypeSymbol typeSymbol,
-        SyntaxToken parameterIdentifier, TypeSyntax parameterType, ValueKind parameterTypeKind, ExpressionSyntax initializer, 
-        Func<ExpressionSyntax, ExpressionSyntax> initializerF, TypeSyntax optionType, ValueKind optionValueKind, bool isCache = false)
-      {
-        this.Identifier = identifier;
-        this.Type = type;
-        this.TypeKind = typeKind;
-        this.TypeSymbol = typeSymbol;
+        public IdentifierReplacer(string name)
+        {
+            this.Name = name;
+        }
+        public readonly string Name;
 
-        this.IsParameter = !isCache;
-        this.ParameterIdentifier = parameterIdentifier;
-        this.ParameterType = parameterType;
-        this.ParameterTypeKind = parameterTypeKind;
-        this.Initializer = initializer;
-        this.InitializerF = initializerF;
-
-        this.IsOption = !isCache;
-        this.OptionType = optionType;
-        this.OptionValueKind = optionValueKind;
-        
-        this.IsCache = isCache;
-      }
-      public readonly SyntaxToken Identifier;
-      public readonly TypeSyntax Type;
-      public readonly ValueKind TypeKind;
-      public readonly ITypeSymbol TypeSymbol;
-
-      public readonly bool IsParameter; //создавать ли аргумент в конструкторе
-      public readonly SyntaxToken ParameterIdentifier;
-      public readonly TypeSyntax ParameterType;
-      public readonly ValueKind ParameterTypeKind;
-      public readonly ExpressionSyntax Initializer;
-      public readonly Func<ExpressionSyntax, ExpressionSyntax> InitializerF;
-
-      public readonly bool IsOption; //создавать ли аргумент в with
-      public readonly TypeSyntax OptionType;
-      public readonly ValueKind OptionValueKind;
-
-      public readonly bool IsCache;
+        public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
+        {
+            if (node.Identifier.ValueText == Name)
+                return SyntaxFactory.ThisExpression();
+            return base.VisitIdentifierName(node);
+        }
     }
-    public enum ValueKind
+
+    static class RoslynHlp
     {
-      Value,
-      NotNullable, //null-type, который не принимает значение null
-      Nullable,
-      Option
+        public static CompilationUnitSyntax AddUsings(this CompilationUnitSyntax compilation, params string[][] usings)
+        {
+            return compilation
+              .AddUsings(usings.Select(@using => s.UsingDirective(ToIdentifierName(@using))).ToArray());
+        }
+        static NameSyntax ToIdentifierName(string[] names)
+        {
+            if (names.Length == 0)
+                return null;
+            var identifiers = names.Select(name => s.IdentifierName(name)).ToArray();
+            if (identifiers.Length == 1)
+                return identifiers.First();
+            var qname = s.QualifiedName(identifiers[0], identifiers[1]);
+            foreach (var identifier in identifiers.Skip(2))
+            {
+                qname = s.QualifiedName(qname, identifier);
+            }
+            return qname;
+        }
+        public static TResult Wrap<TSource, TResult>(this TSource source, Func<TSource, TResult> f)
+        {
+            return f(source);
+        }
     }
-  }
-  class IdentifierReplacer : CSharpSyntaxRewriter
-  {
-    public IdentifierReplacer(string name)
-    {
-      this.Name = name;
-    }
-    public readonly string Name;
-
-    public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
-    {
-      if (node.Identifier.ValueText == Name)
-        return SyntaxFactory.ThisExpression();
-      return base.VisitIdentifierName(node);
-    }
-  }
-
-  static class RoslynHlp
-  {
-    public static CompilationUnitSyntax AddUsings(this CompilationUnitSyntax compilation, params string[][] usings)
-    {
-      return compilation
-        .AddUsings(usings.Select(@using => s.UsingDirective(ToIdentifierName(@using))).ToArray());
-    }
-    static NameSyntax ToIdentifierName(string[] names)
-    {
-      if (names.Length == 0)
-        return null;
-      var identifiers = names.Select(name => s.IdentifierName(name)).ToArray();
-      if (identifiers.Length == 1)
-        return identifiers.First();
-      var qname = s.QualifiedName(identifiers[0], identifiers[1]);
-      foreach (var identifier in identifiers.Skip(2))
-      {
-        qname = s.QualifiedName(qname, identifier);
-      }
-      return qname;
-    }
-    public static TResult Wrap<TSource, TResult>(this TSource source, Func<TSource, TResult> f)
-    {
-      return f(source);
-    }
-  }
 }
