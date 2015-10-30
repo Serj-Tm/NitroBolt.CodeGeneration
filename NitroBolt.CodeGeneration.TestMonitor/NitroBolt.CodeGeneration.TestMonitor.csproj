@@ -56,8 +56,8 @@
       <HintPath>..\packages\NitroBolt.Functional.1.0.17\lib\net45\NitroBolt.Functional.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="NitroBolt.Wui, Version=1.0.14.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\NitroBolt.Wui.1.0.14\lib\net45\NitroBolt.Wui.dll</HintPath>
+    <Reference Include="NitroBolt.Wui, Version=1.0.22.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NitroBolt.Wui.1.0.22\lib\net45\NitroBolt.Wui.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Web.DynamicData" />
