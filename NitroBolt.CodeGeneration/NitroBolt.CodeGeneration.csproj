@@ -110,6 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="Meta\immutable-class.qs" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
