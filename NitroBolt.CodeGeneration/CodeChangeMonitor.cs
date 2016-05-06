@@ -1,6 +1,10 @@
-﻿using System;
+﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
+using NitroBolt.Functional;
+using NitroBolt.Wui;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -76,5 +80,95 @@ namespace NitroBolt.CodeGeneration
             return isChanged;
         }
 
+        public static HElement Visualize()
+        {
+            var files = Directory.GetFiles(@"p:\Projects\NitroBolt.Projects", "*.cs", SearchOption.AllDirectories)
+                 .Where(file => file.IndexOf(@"\obj\") < 0);
+            var fileGIndex = files.Where(file => file.EndsWith(".g.cs")).ToDictionary(file => file);
+            var results = files
+                .Where(file => !file.EndsWith(".g.cs"))
+                .SelectMany(file => new[] { $"{(fileGIndex.Find(file.Substring(0, file.Length - 3) + ".g.cs") != null ? "*" : "\u00a0")} {file}" }
+                  .Concat(ImmutableClasses(file).Select(@class => $"\u00a0\u00a0{@class}"))
+                )
+                .Select(line =>
+                    {
+                        var isGood = line.TrimStart().StartsWith("+");
+                        return h.Div(h.style(isGood ? "color:blue;cursor:pointer;" : null), line, isGood? new hdata { {"command", "class" } }: null, h.onclick(";"));
+                    }
+                 );
+
+            return h.Div
+                (
+                  results,
+                  h.Div(h.style("color:green"), DateTime.UtcNow)
+                );
+        }
+        static readonly HBuilder h = null;
+        static string IsReadonlyField(string filename)
+        {
+            var code = File.ReadAllText(filename);
+            var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(code);
+            return tree.GetRoot().ChildNodes().Select(node => $"{node.GetType().FullName}").JoinToString("\r\n");
+        }
+        static IEnumerable<string> ImmutableClasses(string filename)
+        {
+            var code = File.ReadAllText(filename);
+            var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(code);
+            foreach (var @classOrOther in ImmutableClasses(tree.GetRoot()))
+            {
+                var @class = classOrOther as ClassDeclarationSyntax;
+                if (@class == null)
+                    yield return classOrOther?.ToString();
+                else
+                {
+                    var isImmutable = @class.Members.OfType<FieldDeclarationSyntax>().Any(field => field.Modifiers.Any(mod => mod.ValueText == "readonly") && !field.Modifiers.Any(mod => mod.ValueText == "static"));
+                    yield return $"{(isImmutable ? "+" : "\u00a0")} {@class.Identifier}";
+                }
+            }
+        }
+        static IEnumerable<object> ImmutableClasses(Microsoft.CodeAnalysis.SyntaxNode node)
+        {
+            foreach (var child in node.ChildNodes())
+            {
+                if (child is UsingDirectiveSyntax)
+                    continue;
+                if (child is AttributeListSyntax)
+                    continue;
+                if (child is EnumDeclarationSyntax)
+                    continue;
+                if (child is QualifiedNameSyntax)
+                    continue;
+                if (child is BaseListSyntax || child is FieldDeclarationSyntax || child is PropertyDeclarationSyntax || child is ConstructorDeclarationSyntax || child is MethodDeclarationSyntax)
+                    continue;
+                if (child is InterfaceDeclarationSyntax)
+                    continue;
+
+                var isDrill = child is NamespaceDeclarationSyntax || child is ClassDeclarationSyntax;
+                var isView = !isDrill;
+
+                if (child is ClassDeclarationSyntax)
+                    isView = true;
+
+                if (isDrill)
+                {
+                    foreach (var cc in ImmutableClasses(child))
+                        yield return cc;
+                }
+                //if (child is ClassDeclarationSyntax)
+                //{
+                //    foreach (var member in )
+                //    foreach (var cc in ImmutableClasses(child))
+                //        yield return cc;
+                //}
+                if (isView)
+                {
+                    var @class = child as ClassDeclarationSyntax;
+                    if (@class != null)
+                        yield return @class;
+                    else
+                        yield return child.GetType().FullName;
+                }
+            }
+        }
     }
 }
