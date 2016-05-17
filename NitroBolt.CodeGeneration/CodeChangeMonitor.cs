@@ -80,16 +80,38 @@ namespace NitroBolt.CodeGeneration
             return isChanged;
         }
 
+        static Dictionary<string, object> CacheState = new Dictionary<string, object>();
+        static T Cache<T>(Func<T> f, string key)
+        {
+            if (CacheState.ContainsKey(key))
+            {
+                var v = CacheState[key];
+                if (v is T)
+                    return (T)v;
+                return default(T);
+            }
+            var v2 = f();
+            CacheState[key] = v2;
+            return v2;
+        }
+
         public static HElement Visualize()
         {
-            var files = Directory.GetFiles(@"p:\Projects\NitroBolt.Projects", "*.cs", SearchOption.AllDirectories)
-                 .Where(file => file.IndexOf(@"\obj\") < 0);
+            var files = Cache(() => Directory.GetFiles(@"p:\Projects\NitroBolt.Projects", "*.cs", SearchOption.AllDirectories)
+                 .Where(file => file.IndexOf(@"\obj\") < 0)
+                 .ToArray(),
+                 "files"
+                );
             var fileGIndex = files.Where(file => file.EndsWith(".g.cs")).ToDictionary(file => file);
-            var results = files
+
+            var classes = Cache(() => files
                 .Where(file => !file.EndsWith(".g.cs"))
                 .SelectMany(file => new[] { $"{(fileGIndex.Find(file.Substring(0, file.Length - 3) + ".g.cs") != null ? "*" : "\u00a0")} {file}" }
                   .Concat(ImmutableClasses(file).Select(@class => $"\u00a0\u00a0{@class}"))
-                )
+                ), "classes");
+
+            var results = 
+                classes
                 .Select(line =>
                     {
                         var isGood = line.TrimStart().StartsWith("+");
@@ -103,6 +125,8 @@ namespace NitroBolt.CodeGeneration
                   h.Div(h.style("color:green"), DateTime.UtcNow)
                 );
         }
+ 
+
         static readonly HBuilder h = null;
         static string IsReadonlyField(string filename)
         {
