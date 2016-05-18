@@ -95,7 +95,37 @@ namespace NitroBolt.CodeGeneration
             return v2;
         }
 
-        public static HElement Visualize()
+        //public static HElement Visualize()
+        //{
+        //    var files = Cache(() => Directory.GetFiles(@"p:\Projects\NitroBolt.Projects", "*.cs", SearchOption.AllDirectories)
+        //         .Where(file => file.IndexOf(@"\obj\") < 0)
+        //         .ToArray(),
+        //         "files"
+        //        );
+        //    var fileGIndex = files.Where(file => file.EndsWith(".g.cs")).ToDictionary(file => file);
+
+        //    var classes = Cache(() => files
+        //        .Where(file => !file.EndsWith(".g.cs"))
+        //        .SelectMany(file => new[] { $"{(fileGIndex.Find(file.Substring(0, file.Length - 3) + ".g.cs") != null ? "*" : "\u00a0")} {file}" }
+        //          .Concat(ImmutableClasses(file).Select(@class => $"\u00a0\u00a0{@class}"))
+        //        ), "classes");
+
+        //    var results = 
+        //        classes
+        //        .Select(line =>
+        //            {
+        //                var isGood = line.TrimStart().StartsWith("+");
+        //                return h.Div(h.style(isGood ? "color:blue;cursor:pointer;" : null), line, isGood? new hdata { {"command", "class" } }: null, h.onclick(";"));
+        //            }
+        //         );
+
+        //    return h.Div
+        //        (
+        //          results,
+        //          h.Div(h.style("color:green"), DateTime.UtcNow)
+        //        );
+        //}
+        public static object Visualize()
         {
             var files = Cache(() => Directory.GetFiles(@"p:\Projects\NitroBolt.Projects", "*.cs", SearchOption.AllDirectories)
                  .Where(file => file.IndexOf(@"\obj\") < 0)
@@ -110,22 +140,25 @@ namespace NitroBolt.CodeGeneration
                   .Concat(ImmutableClasses(file).Select(@class => $"\u00a0\u00a0{@class}"))
                 ), "classes");
 
-            var results = 
+            var results =
                 classes
                 .Select(line =>
                     {
                         var isGood = line.TrimStart().StartsWith("+");
-                        return h.Div(h.style(isGood ? "color:blue;cursor:pointer;" : null), line, isGood? new hdata { {"command", "class" } }: null, h.onclick(";"));
+                        return new { isGood, line };
+                        //return h.Div(h.style(isGood ? "color:blue;cursor:pointer;" : null), line, isGood ? new hdata { { "command", "class" } } : null, h.onclick(";"));
                     }
                  );
-
-            return h.Div
-                (
-                  results,
-                  h.Div(h.style("color:green"), DateTime.UtcNow)
-                );
+            return results;
         }
- 
+
+        public static int[] TestVisualize()
+        {
+            return
+                  Enumerable.Range(10, 200)
+                    .ToArray();
+                
+        }
 
         static readonly HBuilder h = null;
         static string IsReadonlyField(string filename)
