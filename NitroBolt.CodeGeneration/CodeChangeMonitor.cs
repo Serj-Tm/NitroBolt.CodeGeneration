@@ -136,20 +136,21 @@ namespace NitroBolt.CodeGeneration
 
             var classes = Cache(() => files
                 .Where(file => !file.EndsWith(".g.cs"))
-                .SelectMany(file => new[] { $"{(fileGIndex.Find(file.Substring(0, file.Length - 3) + ".g.cs") != null ? "*" : "\u00a0")} {file}" }
-                  .Concat(ImmutableClasses(file).Select(@class => $"\u00a0\u00a0{@class}"))
+                .SelectMany(file => new[] { new { isImmutable = false, @class = (string)null, other = (string)null, isWithGenCs = fileGIndex.Find(file.Substring(0, file.Length - 3) + ".g.cs") != null, file,  } }
+                  .Concat(ImmutableClasses(file).Select(@classEntry => new {isImmutable = classEntry.Item1, @class=classEntry.Item2, other = classEntry.Item3, isWithGenCs = false, file =(string)null } ))
                 ), "classes");
 
-            var results =
-                classes
-                .Select(line =>
-                    {
-                        var isGood = line.TrimStart().StartsWith("+");
-                        return new { isGood, line };
-                        //return h.Div(h.style(isGood ? "color:blue;cursor:pointer;" : null), line, isGood ? new hdata { { "command", "class" } } : null, h.onclick(";"));
-                    }
-                 );
-            return results;
+            //var results =
+            //    classes
+            //    .Select(line =>
+            //        {
+            //            var isGood = line.TrimStart().StartsWith("+");
+            //            return new { isGood, line };
+            //            //return h.Div(h.style(isGood ? "color:blue;cursor:pointer;" : null), line, isGood ? new hdata { { "command", "class" } } : null, h.onclick(";"));
+            //        }
+            //     );
+            //return results;
+            return classes;
         }
 
         public static int[] TestVisualize()
@@ -167,7 +168,7 @@ namespace NitroBolt.CodeGeneration
             var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(code);
             return tree.GetRoot().ChildNodes().Select(node => $"{node.GetType().FullName}").JoinToString("\r\n");
         }
-        static IEnumerable<string> ImmutableClasses(string filename)
+        static IEnumerable<Tuple<bool, string, string>> ImmutableClasses(string filename)
         {
             var code = File.ReadAllText(filename);
             var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(code);
@@ -175,11 +176,11 @@ namespace NitroBolt.CodeGeneration
             {
                 var @class = classOrOther as ClassDeclarationSyntax;
                 if (@class == null)
-                    yield return classOrOther?.ToString();
+                    yield return Tuple.Create(false, (string)null, classOrOther?.ToString());
                 else
                 {
                     var isImmutable = @class.Members.OfType<FieldDeclarationSyntax>().Any(field => field.Modifiers.Any(mod => mod.ValueText == "readonly") && !field.Modifiers.Any(mod => mod.ValueText == "static"));
-                    yield return $"{(isImmutable ? "+" : "\u00a0")} {@class.Identifier}";
+                    yield return Tuple.Create(isImmutable, @class.Identifier.ValueText, (string)null);
                 }
             }
         }
@@ -198,6 +199,8 @@ namespace NitroBolt.CodeGeneration
                 if (child is BaseListSyntax || child is FieldDeclarationSyntax || child is PropertyDeclarationSyntax || child is ConstructorDeclarationSyntax || child is MethodDeclarationSyntax)
                     continue;
                 if (child is InterfaceDeclarationSyntax)
+                    continue;
+                if (child is TypeParameterListSyntax)
                     continue;
 
                 var isDrill = child is NamespaceDeclarationSyntax || child is ClassDeclarationSyntax;
