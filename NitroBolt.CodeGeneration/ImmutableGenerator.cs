@@ -34,6 +34,7 @@ namespace NitroBolt.CodeGeneration
                 var @namespace = tree.GetCompilationUnitRoot().Members.OfType<NamespaceDeclarationSyntax>().FirstOrDefault();
 
 
+                var usings = tree.GetCompilationUnitRoot().Usings.ToArray();
 
 
                 var r = s.CompilationUnit()
@@ -45,7 +46,9 @@ namespace NitroBolt.CodeGeneration
                     new[] { "System", "Collections", "Immutable" },
                     new[] { "NitroBolt", "Functional" },
                     new[] { "NitroBolt", "Immutable" }
-                  );
+                  )
+                  .AddUsings(usings);
+
 
                 var isAdded = false;
 
