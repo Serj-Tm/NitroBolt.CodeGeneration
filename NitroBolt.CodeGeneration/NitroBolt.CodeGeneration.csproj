@@ -114,6 +114,7 @@
   <ItemGroup>
     <Compile Include="CodeChangeMonitor.cs" />
     <Compile Include="ImmutableGenerator.cs" />
+    <Compile Include="InterfaceToClassGenerator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

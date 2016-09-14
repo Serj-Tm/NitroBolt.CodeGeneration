@@ -54,7 +54,7 @@ namespace NitroBolt.CodeGeneration
 
                 if (@namespace != null)
                 {
-                    var resultNamespace = s.NamespaceDeclaration(@namespace.Name);
+                    var resultMembers = new List<MemberDeclarationSyntax>();
                     foreach (var @class in @namespace.Members.OfType<ClassDeclarationSyntax>())
                     {
 
@@ -63,16 +63,19 @@ namespace NitroBolt.CodeGeneration
                         if (!members.OrEmpty().Any())
                             continue;
 
-                        resultNamespace = resultNamespace
-                          .AddMembers(GenerateConstructorAndWithMethod(@class.Identifier.ValueText, members));
+                        resultMembers.Add(GenerateConstructorAndWithMethod(@class.Identifier.ValueText, members));
 
                         var byHelper = GenerateByMethod(@class.Identifier.ValueText, members);
                         if (byHelper != null)
-                            resultNamespace = resultNamespace.AddMembers(byHelper);
-
-                        isAdded = true;
+                            resultMembers.Add(byHelper);
                     }
+
+                    resultMembers.AddRange(InterfaceToClassGenerator.GenerateClasses(@namespace));
+
+                    var resultNamespace = s.NamespaceDeclaration(@namespace.Name).AddMembers(resultMembers.ToArray());
                     r = r.AddMembers(resultNamespace);
+
+                    isAdded = isAdded || resultMembers.Any();
                 }
                 if (!isAdded)
                     return null;
@@ -97,7 +100,7 @@ namespace NitroBolt.CodeGeneration
               .Select(member => ToMember(member, model)).Where(member => member != null).ToArray();
         }
 
-        private static ClassDeclarationSyntax GenerateConstructorAndWithMethod(string name, Member[] members)
+        public static ClassDeclarationSyntax GenerateConstructorAndWithMethod(string name, Member[] members)
         {
             var resultClass = s.ClassDeclaration(name)
                  .AddModifiers(s.Token(SyntaxKind.PartialKeyword));
@@ -296,7 +299,7 @@ namespace NitroBolt.CodeGeneration
               .FirstOrDefault();
         }
 
-        static Member ToMember(MemberDeclarationSyntax member, SemanticModel model)
+        public static Member ToMember(MemberDeclarationSyntax member, SemanticModel model)
         {
             if (member is FieldDeclarationSyntax)
             {
@@ -351,7 +354,7 @@ namespace NitroBolt.CodeGeneration
                     return name;
             }
         }
-        static Member ToMember(SyntaxToken identifier, TypeSyntax type, ITypeSymbol typeSymbol, string literal, ExpressionSyntax initializer = null)
+        public static Member ToMember(SyntaxToken identifier, TypeSyntax type, ITypeSymbol typeSymbol, string literal, ExpressionSyntax initializer = null)
         {
             var elementType = ArrayElementType(type);
             var isCollection = IsCollection(type);
