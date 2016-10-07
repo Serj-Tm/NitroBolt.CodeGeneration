@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using s = Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
@@ -161,7 +162,27 @@ namespace NitroBolt.CodeGeneration
                 )
               ));
 
-            return resultClass.AddMembers(constructor, with);
+            var resultMembers = new List<MemberDeclarationSyntax> {constructor, with};
+
+            resultMembers.AddRange(members.Where(_member => IsArray(_member.Type))
+                .Select(member => 
+                    s.MethodDeclaration(s.IdentifierName(name), "With_" + member.Identifier.Text)
+                      .AddModifiers(s.Token(SyntaxKind.PublicKeyword))
+                      .AddParameterListParameters
+                      (
+                        s.Parameter(member.ParameterIdentifier)
+                            .WithType(member.Type)
+                            .AddModifiers(s.Token(SyntaxKind.ParamsKeyword))
+                      )
+                      .WithBody(s.Block(s.ReturnStatement
+                      (
+                          s.InvocationExpression(s.IdentifierName("With"))
+                          .AddArgumentListArguments(s.Argument(s.IdentifierName(member.ParameterIdentifier)).WithNameColon(s.NameColon(s.IdentifierName(member.ParameterIdentifier))))))
+                      )
+                )
+            );
+
+            return resultClass.AddMembers(resultMembers.ToArray());
         }
 
         //static T ByMethod_Pattern<T, TValue>(this IEnumerable<T> items, Func<T, TValue> f, Option<TValue> v = null)
@@ -246,7 +267,7 @@ namespace NitroBolt.CodeGeneration
         }
         static bool IsCollection(TypeSyntax type)
         {
-            if (type is ArrayTypeSyntax)
+            if (IsArray(type))
                 return true;
             if (type is GenericNameSyntax)
             {
@@ -255,6 +276,11 @@ namespace NitroBolt.CodeGeneration
                     return true;
             }
             return false;
+        }
+
+        static bool IsArray(TypeSyntax type)
+        {
+            return type is ArrayTypeSyntax;
         }
         static bool IsNullableType(TypeSyntax type, ITypeSymbol typeSymbol)
         {
@@ -399,6 +425,11 @@ namespace NitroBolt.CodeGeneration
             if (typeKind == ValueKind.Value && (initializer != null || initializerF != null))
             {
                 parameterType = s.NullableType(type);
+                parameterTypeKind = ValueKind.Nullable;
+            }
+            if (typeKind == ValueKind.NotNullable && (initializer != null || initializerF != null))
+            {
+                parameterType = type;
                 parameterTypeKind = ValueKind.Nullable;
             }
             var optionType = type;
