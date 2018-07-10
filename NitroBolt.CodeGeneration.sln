@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2015
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NitroBolt.CodeGeneration", "NitroBolt.CodeGeneration\NitroBolt.CodeGeneration.csproj", "{6248315B-6626-46D5-BCCD-43447CE1E9FD}"
 EndProject
@@ -10,6 +10,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NitroBolt.CodeGeneration.TestMonitor", "NitroBolt.CodeGeneration.TestMonitor\NitroBolt.CodeGeneration.TestMonitor.csproj", "{2D79D60F-498D-4901-AEC3-9055166DF109}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NitroBolt.CodeGeneration.DevConsole", "NitroBolt.CodeGeneration.DevConsole\NitroBolt.CodeGeneration.DevConsole.csproj", "{F0AB2A0B-4023-4AA2-8D3F-91EAC03FB873}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NitroBolt.CodeGeneration.Sample", "NitroBolt.CodeGeneration.Sample\NitroBolt.CodeGeneration.Sample.csproj", "{03979A79-0866-4756-9EA4-67C40186C578}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,8 +35,15 @@ Global
 		{F0AB2A0B-4023-4AA2-8D3F-91EAC03FB873}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0AB2A0B-4023-4AA2-8D3F-91EAC03FB873}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0AB2A0B-4023-4AA2-8D3F-91EAC03FB873}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03979A79-0866-4756-9EA4-67C40186C578}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03979A79-0866-4756-9EA4-67C40186C578}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03979A79-0866-4756-9EA4-67C40186C578}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03979A79-0866-4756-9EA4-67C40186C578}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {64D18545-7E52-4C78-AAE4-8A1EF9B2F1F4}
 	EndGlobalSection
 EndGlobal

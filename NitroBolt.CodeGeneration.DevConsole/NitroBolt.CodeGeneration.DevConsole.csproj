@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>NitroBolt.CodeGeneration</RootNamespace>
     <AssemblyName>NitroBolt.CodeGeneration.DevConsole</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -32,7 +33,19 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="NitroBolt.Functional, Version=1.0.35.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NitroBolt.Functional.1.0.35\lib\net45\NitroBolt.Functional.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NitroBolt.Immutable, Version=1.0.35.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NitroBolt.Immutable.1.0.35\lib\net45\NitroBolt.Immutable.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Collections.Immutable, Version=1.1.36.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Collections.Immutable.1.1.36\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -47,8 +60,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\NitroBolt.CodeGeneration.Sample\NitroBolt.CodeGeneration.Sample.csproj">
+      <Project>{03979a79-0866-4756-9ea4-67c40186c578}</Project>
+      <Name>NitroBolt.CodeGeneration.Sample</Name>
+    </ProjectReference>
     <ProjectReference Include="..\NitroBolt.CodeGeneration\NitroBolt.CodeGeneration.csproj">
       <Project>{6248315b-6626-46d5-bccd-43447ce1e9fd}</Project>
       <Name>NitroBolt.CodeGeneration</Name>
