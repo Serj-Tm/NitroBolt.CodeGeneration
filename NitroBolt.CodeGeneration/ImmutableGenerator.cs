@@ -122,11 +122,11 @@ namespace NitroBolt.CodeGeneration
                 .ToArray()
               )
               .WithBody(s.Block(members
-                  .Select(member => s.ExpressionStatement(s.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, s.IdentifierName(member.Identifier),
+                  .Select(member => s.ExpressionStatement(s.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, ThisIdentifier(member),
                     !member.IsParameter
                     ? member.Initializer
                     : (member.InitializerF
-                       ?? (member.Initializer != null ? new Func<ExpressionSyntax, ExpressionSyntax>(p => s.BinaryExpression(SyntaxKind.CoalesceExpression, p, member.Initializer)) : null)
+                       ?? (member.Initializer != null ? new Func<ExpressionSyntax, ExpressionSyntax>(p => s.BinaryExpression(SyntaxKind.CoalesceExpression, p, ThisIdentifier(member))) : null)
                        ?? (p => p)
                       )
                         (s.IdentifierName(member.ParameterIdentifier))
@@ -154,8 +154,8 @@ namespace NitroBolt.CodeGeneration
                       .Select(member => s.Argument(
                          member.OptionValueKind == ValueKind.Option
                          ? s.InvocationExpression(s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, s.IdentifierName(member.ParameterIdentifier), s.IdentifierName("Else")))
-                            .AddArgumentListArguments(s.Argument(s.IdentifierName(member.Identifier)))
-                         : (ExpressionSyntax)s.BinaryExpression(SyntaxKind.CoalesceExpression, s.IdentifierName(member.ParameterIdentifier), s.IdentifierName(member.Identifier))
+                            .AddArgumentListArguments(s.Argument(ThisIdentifier(member)))
+                         : (ExpressionSyntax)s.BinaryExpression(SyntaxKind.CoalesceExpression, s.IdentifierName(member.ParameterIdentifier), ThisIdentifier(member))
                       ))
                       .ToArray()
                   )
@@ -183,6 +183,13 @@ namespace NitroBolt.CodeGeneration
             );
 
             return resultClass.AddMembers(resultMembers.ToArray());
+        }
+        static ExpressionSyntax ThisIdentifier(Member member)
+        {
+            if (member.Identifier.ValueText != member.ParameterIdentifier.ValueText)
+                return s.IdentifierName(member.Identifier);
+            else
+                return s.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression, s.ThisExpression(), s.IdentifierName(member.Identifier));
         }
 
         //static T ByMethod_Pattern<T, TValue>(this IEnumerable<T> items, Func<T, TValue> f, Option<TValue> v = null)
