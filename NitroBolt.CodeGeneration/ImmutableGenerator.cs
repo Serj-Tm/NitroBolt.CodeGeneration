@@ -382,6 +382,7 @@ namespace NitroBolt.CodeGeneration
             {
                 case "class":
                 case "default":
+                case "short":
                     return "@" + name;
                 default:
                     return name;
