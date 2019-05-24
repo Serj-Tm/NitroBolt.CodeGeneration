@@ -33,6 +33,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="NitroBolt.CommandLine, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NitroBolt.CommandLine.1.0.5\lib\netstandard2.0\NitroBolt.CommandLine.dll</HintPath>
+    </Reference>
     <Reference Include="NitroBolt.Functional, Version=1.0.35.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\NitroBolt.Functional.1.0.35\lib\net45\NitroBolt.Functional.dll</HintPath>
       <Private>True</Private>
@@ -55,6 +58,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="InitializationGenerating.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -13,6 +13,9 @@ namespace NitroBolt.CodeGeneration
     {
         static void Main(string[] args)
         {
+            NitroBolt.CommandLine.CommandLineManager.Process(args, typeof(Program).Assembly);
+
+            return;
             if (true)
             {
                 var xml = @"<!--x--><data><X><!--x-->12</X>s<!--c--><Z x='5'>tt</Z><S>v</S></data>";

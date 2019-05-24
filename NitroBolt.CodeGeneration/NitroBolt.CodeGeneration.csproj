@@ -115,6 +115,7 @@
     <Compile Include="CodeChangeMonitor.cs" />
     <Compile Include="DataImmutableGenerator.cs" />
     <Compile Include="ImmutableGenerator.cs" />
+    <Compile Include="InitializationGenerator.cs" />
     <Compile Include="InterfaceToClassGenerator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="T1.g.cs" />
