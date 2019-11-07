@@ -45,6 +45,8 @@ namespace NitroBolt.CodeGeneration
             {
                 Console.WriteLine(_e.FullPath);
                 Console.WriteLine("  {0}, {1}", _e.ChangeType, _e.Name);
+                if (!_e.Name.EndsWith(".cs", StringComparison.InvariantCultureIgnoreCase))
+                    return;
                 files.TryAdd(_e.FullPath);
             };
             watcher.Changed += handler;
