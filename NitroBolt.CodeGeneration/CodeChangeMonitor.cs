@@ -71,15 +71,42 @@ namespace NitroBolt.CodeGeneration
         {
             var gPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(codePath), System.IO.Path.GetFileNameWithoutExtension(codePath) + ".g.cs");
             var isG = System.IO.File.Exists(gPath);
-            
-            var code = generator(System.IO.File.ReadAllText(codePath));
-            if (code == null)
+            if (!isG)
+            {
+                Console.WriteLine("skipped by g.cs not found");
                 return false;
+            }
+
+            var code = generator(TryReadAllText(codePath));
+            if (code == null)
+            {
+                Console.WriteLine("skip by null generator");
+                return false;
+            }
             var isChanged = isG ? System.IO.File.ReadAllText(gPath) != code : false;
             if (isChanged)
                 System.IO.File.WriteAllText(gPath, code);
             Console.WriteLine($"{(isG ? "+" : " ")}{(isChanged ? "!" : " ")}{codePath}");
             return isChanged;
+        }
+        static string TryReadAllText(string filename)
+        {
+            const int tryCount = 3;
+
+            for (var i = 0; i < tryCount; ++i)
+            {
+                try
+                {
+                    return File.ReadAllText(filename);
+                }
+                catch (Exception)
+                {
+                    if (i == tryCount - 1)
+                        throw;
+                }
+                System.Threading.Thread.Sleep(TimeSpan.FromSeconds(0.1));
+            }
+            throw new Exception("unreachable code");
         }
 
         static Dictionary<string, object> CacheState = new Dictionary<string, object>();
