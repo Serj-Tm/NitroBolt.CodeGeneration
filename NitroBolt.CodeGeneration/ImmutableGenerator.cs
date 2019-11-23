@@ -66,9 +66,9 @@ namespace NitroBolt.CodeGeneration
 
                         resultMembers.Add(GenerateConstructorAndWithMethod(@class.Identifier.ValueText, members));
 
-                        var byHelper = GenerateByMethod(@class.Identifier.ValueText, members);
-                        if (byHelper != null)
-                            resultMembers.Add(byHelper);
+                        //var byHelper = GenerateByMethod(@class.Identifier.ValueText, members);
+                        //if (byHelper != null)
+                        //    resultMembers.Add(byHelper);
                     }
 
                     resultMembers.AddRange(InterfaceToClassGenerator.GenerateClasses(@namespace));
@@ -358,7 +358,10 @@ namespace NitroBolt.CodeGeneration
                     return null;
 
                 if (property.AccessorList?.Accessors.Any(accessor => accessor.Kind() == SyntaxKind.SetAccessorDeclaration) ?? false)
-                    return ToMember(property.Identifier, property.Type, model.GetTypeInfo(property.Type).Type, MetaLiteral(property.AttributeLists));
+                    return ToMember(property.Identifier, property.Type, 
+                        model.GetTypeInfo(property.Type).Type, 
+                        MetaLiteral(property.AttributeLists),
+                        property.Initializer?.Value);
                 else
                     return null;
             }
